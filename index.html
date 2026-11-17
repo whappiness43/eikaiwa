@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>清掃英会話れんしゅう（試作）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f4ef; --card:#ffffff; --ink:#22303a; --sub:#6b7780; --line:#e4e0d6;
+  --accent:#1f7a6d; --accent-soft:#e3f1ee; --guest:#b8642a; --guest-soft:#fbeee3;
+  --ok:#2e8b57; --ok-soft:#e5f4ea; --ng:#c0392b; --ng-soft:#fbe7e4;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans JP",system-ui,sans-serif;font-size:16px;line-height:1.6}
+button{font-family:inherit;font-size:inherit;cursor:pointer}
+.wrap{max-width:640px;margin:0 auto;padding:0 14px 120px}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:14px 0 8px;border-bottom:1px solid var(--line)}
+h1{font-size:18px;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+h1 small{font-size:11px;font-weight:500;color:var(--sub);background:#ebe7dd;border-radius:99px;padding:1px 8px}
+.tabs{display:flex;gap:6px}
+.tab{flex:1;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 0;font-weight:500;color:var(--sub)}
+.tab.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.total{font-size:12px;color:var(--sub);margin-top:6px}
+.bar{height:6px;background:#e7e3da;border-radius:99px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
+
+.scene{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-top:10px;overflow:hidden}
+.scene-h{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;text-align:left;padding:12px 14px}
+.scene-h .no{width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;font-size:14px;flex:none}
+.scene-h .nm{flex:1;font-weight:500}
+.scene-h .ct{font-size:12px;color:var(--sub)}
+.scene-h .ar{color:var(--sub);transition:transform .2s}
+.scene.open .ar{transform:rotate(90deg)}
+.plist{display:none;border-top:1px solid var(--line)}
+.scene.open .plist{display:block}
+.prow{display:flex;align-items:center;gap:8px;width:100%;border:0;border-bottom:1px solid #f0ede6;background:none;text-align:left;padding:10px 14px}
+.prow:last-child{border-bottom:0}
+.prow .n{font-size:12px;color:var(--sub);width:22px;flex:none}
+.prow .t{flex:1}
+.prow .g{font-size:11px;color:var(--guest);background:var(--guest-soft);border-radius:6px;padding:0 6px;flex:none}
+.prow .d{width:22px;text-align:center;color:var(--ok);font-weight:700;flex:none}
+
+.sheet-bg{position:fixed;inset:0;background:rgba(20,30,35,.45);z-index:20;display:none}
+.sheet-bg.on{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--card);border-radius:18px 18px 0 0;max-height:92vh;overflow:auto;transform:translateY(105%);transition:transform .25s;padding:16px 18px 22px}
+.sheet.on{transform:none}
+.sheet-in{max-width:600px;margin:0 auto}
+.sh-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--sub)}
+.x{border:0;background:#f0ede6;border-radius:99px;width:32px;height:32px;font-size:16px}
+.who{display:inline-block;font-size:12px;border-radius:6px;padding:1px 8px;margin-top:8px}
+.who.s{background:var(--accent-soft);color:var(--accent)}
+.who.g{background:var(--guest-soft);color:var(--guest)}
+.ja{font-size:20px;font-weight:700;margin:8px 0 4px}
+.en{font-size:19px;margin:6px 0;padding:10px 12px;background:#f8f7f3;border-radius:10px;letter-spacing:.01em}
+.en.hide{color:transparent;user-select:none;background:repeating-linear-gradient(45deg,#efece5,#efece5 8px,#f6f4ee 8px,#f6f4ee 16px);position:relative}
+.en.hide::after{content:"英語は隠れています";position:absolute;inset:0;display:grid;place-items:center;font-size:13px;color:var(--sub)}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.b{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 14px;font-weight:500}
+.b.p{background:var(--accent);border-color:var(--accent);color:#fff}
+.b.gp{background:var(--guest);border-color:var(--guest);color:#fff}
+.b.mic{background:#fff;border:2px solid var(--accent);color:var(--accent);flex:1;min-width:140px;padding:14px}
+.b.mic.rec{background:var(--ng);border-color:var(--ng);color:#fff;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.75}}
+.b:disabled{opacity:.45}
+.res{margin-top:12px;padding:12px;border-radius:12px;background:#f8f7f3;display:none}
+.res.on{display:block}
+.res .heard{font-size:13px;color:var(--sub)}
+.res .words{font-size:18px;margin:6px 0;line-height:1.9}
+.w{border-radius:5px;padding:1px 4px;margin-right:2px}
+.w.ok{background:var(--ok-soft);color:var(--ok)}
+.w.ng{background:var(--ng-soft);color:var(--ng);text-decoration:underline wavy}
+.res .msg{font-weight:700}
+.self{display:flex;gap:8px;margin-top:8px}
+.nav{display:flex;gap:8px;margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.nav .b{flex:1}
+.done-btn.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.note{font-size:12px;color:var(--sub);margin-top:8px}
+
+.dlist .scene-h{border-bottom:0}
+.chat{margin-top:12px}
+.bub{max-width:88%;border-radius:14px;padding:10px 12px;margin:8px 0;position:relative}
+.bub.g{background:var(--guest-soft);border-top-left-radius:4px}
+.bub.s{background:var(--accent-soft);margin-left:auto;border-top-right-radius:4px}
+.bub .lb{font-size:11px;color:var(--sub)}
+.bub .e{font-size:17px}
+.bub .j{font-size:13px;color:var(--sub)}
+.bub .e.hide{filter:blur(6px);user-select:none}
+.turn{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:10px}
+.dhead{display:flex;align-items:center;gap:8px;margin-top:14px}
+.dhead .b{padding:6px 12px}
+.dhead .tt{flex:1;font-weight:700}
+
+.set{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:12px}
+.set h3{margin:0 0 8px;font-size:15px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid #f0ede6}
+.row:first-of-type{border-top:0}
+.row select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:#fff}
+.sw{width:48px;height:28px;border-radius:99px;border:0;background:#d9d5cc;position:relative;flex:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .2s}
+.sw.on{background:var(--accent)}
+.sw.on::after{left:23px}
+.env{font-size:13px}
+.env b{font-weight:500}
+.dlg{position:fixed;inset:0;z-index:40;background:rgba(20,30,35,.5);display:none;place-items:center;padding:20px}
+.dlg.on{display:grid}
+.dlg-in{background:#fff;border-radius:16px;padding:18px;max-width:340px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:99px;padding:8px 16px;font-size:14px;z-index:50;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>清掃英会話れんしゅう <small>試作</small></h1>
+    <div class="tabs">
+      <button class="tab on" data-v="phr">フレーズ</button>
+      <button class="tab" data-v="dlg">会話</button>
+      <button class="tab" data-v="set">設定</button>
+    </div>
+    <div class="total" id="total"></div>
+    <div class="bar"><i id="totalbar"></i></div>
+  </header>
+  <main id="main"></main>
+</div>
+
+<div class="sheet-bg" id="sheetbg"></div>
+<div class="sheet" id="sheet"><div class="sheet-in" id="sheetin"></div></div>
+<div class="dlg" id="dlg"><div class="dlg-in" id="dlgin"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== データ ===== */
+const SCENES=["あいさつ・訪問","声をかける","チェックイン前・荷物・断るとき","チェックイン・館内の案内","タオル・備品","忘れ物","チェックアウト・退出のお願い","トラブル・苦情","周辺の案内","雑談・お見送り"];
+// [番号, 場面(1-10), ゲストのセリフか, 日本語, 英語]  {in}{out}{floor} は設定で入れ替え
+const P=[
+[1,1,0,"こんにちは、清掃係です","Hello, I'm the cleaning staff."],
+[2,1,0,"お掃除に来ました","I'm here for the cleaning."],
+[3,1,0,"シーツを交換しに来ました","I'm here to change the sheets."],
+[4,1,0,"タオルをお持ちしました","I brought some towels."],
+[5,1,0,"電球の交換に来ました","I'm here to change the light."],
+[6,1,0,"中に入っていいですか？","Can I come in?"],
+[7,1,0,"使用済みのタオルを回収します","I'll take the used towels."],
+[8,1,0,"電球が切れています","The light is dead."],
+[9,1,0,"確認しただけです","I was just checking."],
+[10,2,0,"どうかされました？","Is everything OK?"],
+[11,2,0,"手伝いましょうか？","Can I help you?"],
+[12,2,0,"ちょっと待っててくださいね","Please wait a moment."],
+[13,3,0,"はい！清掃中です","Hi! I'm cleaning right now."],
+[14,3,1,"チェックインできますか？","Can I check in now?"],
+[15,3,1,"荷物を預かってもらえますか？","Can you keep my luggage?"],
+[16,3,0,"午後{in}時からチェックインできます","You can check in from {in} p.m."],
+[17,3,0,"午後{in}時以降にこちらにお戻りいただけます","You can come back here after {in} p.m."],
+[18,3,0,"こちらに荷物を置いておけます","You can leave your baggage here."],
+[19,3,0,"荷物は何個ですか？","How many bags do you have?"],
+[20,3,0,"そしたらこちらの部屋に持ってきてください","Then please bring them to this room."],
+[21,3,0,"貴重品は持って行ってくださいね。例えばパスポート、スマホや財布","Please keep your valuables with you, like your passport, phone, and wallet."],
+[22,3,0,"お預かりした荷物の記録を撮らせていただきますね","Let me take a photo of your bags for our records."],
+[23,3,0,"オーナーから聞いていませんね","I haven't heard about it from the owner."],
+[24,3,0,"すぐに確認します","Let me check it."],
+[25,3,0,"メッセージを確認してください","Please check your messages."],
+[26,3,0,"今日は次のお客様がチェックインします","New guests are checking in today."],
+[27,3,0,"恐れ入りますが、わたしではお手伝いできません","I'm afraid I can't help you with that."],
+[28,4,0,"チェックインですか？","Are you checking in?"],
+[29,4,1,"チェックインお願いします","I'd like to check in, please."],
+[30,4,0,"こちらへどうぞ","Please come on in."],
+[31,4,0,"どちらの部屋を予約されましたか？","Which room did you book?"],
+[32,4,0,"お名前よろしいですか？","May I have your name?"],
+[33,4,0,"お名前を確認しますね","Let me check your name."],
+[34,4,0,"パスポートよろしいですか？","May I see your passport?"],
+[35,4,0,"皆さん全員のパスポートが必要です","I need everyone's passport."],
+[36,4,0,"以上です（完了しました）","All done. Thank you."],
+[37,4,0,"パスコードを送信しました","I sent you the passcode."],
+[38,4,0,"お部屋の準備ができました。お部屋に入って大丈夫です","Your room is ready. You can go to your room."],
+[39,4,0,"あなたの部屋は{floor}階です","Your room is on floor {floor}."],
+[40,4,0,"エレベーターをお使いください","Please take the elevator."],
+[41,4,0,"階段をお使いください","Please take the stairs."],
+[42,4,0,"一つ下です","It's one floor down."],
+[43,4,0,"一つ上です","It's one floor up."],
+[44,4,0,"靴はお脱ぎください","Please take off your shoes."],
+[45,4,0,"靴はこちらに置いてください","Please leave your shoes here."],
+[46,4,0,"スリッパを使えます","You can use the indoor shoes."],
+[47,4,0,"鍵は箱の中にあります","The key is in the key box."],
+[48,4,0,"チェックアウト時は鍵を箱に戻してください","Please put the key back in the box when you check out."],
+[49,4,0,"玄関の施錠を必ずしてください","Please make sure to lock the front door."],
+[50,4,0,"ごゆっくりお過ごしください","Enjoy your stay."],
+[51,5,0,"通常タオルは交換しません","We don't usually change the towels."],
+[52,5,0,"もしご希望ならば、お金がかかります","If you need it, you need to pay for it."],
+[53,6,1,"めがね見ませんでしたか？","Have you seen my glasses?"],
+[54,6,1,"めがねを置き忘れてしまいました","I left my glasses in the room."],
+[55,6,0,"めがねですか？","Your glasses?"],
+[56,6,0,"ちょっと待って！これあなたのですか？","Hold on! Is this yours?"],
+[57,6,1,"私のです","Yes, that's mine."],
+[58,6,0,"はいどうぞ","Here you are."],
+[59,6,0,"どういたしまして","Sure."],
+[60,6,0,"全部お持ちですか？","Do you have everything?"],
+[61,6,0,"忘れ物がないように確認してください","Please make sure you don't leave anything behind."],
+[62,7,0,"チェックアウトですか？","Are you checking out?"],
+[63,7,0,"チェックアウトは午前{out}時です","Check-out is at {out} a.m."],
+[64,7,0,"恐れ入りますが、チェックアウトの時間です","I'm afraid it's check-out time."],
+[65,7,1,"すぐ出ます","OK, I'll be right out."],
+[66,7,0,"あとどれくらい時間がかかりますか？","How much longer do you need?"],
+[67,7,1,"10分くらいです","About ten minutes."],
+[68,7,0,"わかりました。ここで待ってますね","OK. I'll wait here."],
+[69,7,1,"レイトチェックアウトしたいんだけど。1時間くらいかかる","Can I have a late check-out? I need about an hour."],
+[70,7,0,"ご退出いただけますでしょうか？","Could you please leave the room now?"],
+[71,7,0,"急いでください","Please be quick."],
+[72,7,0,"みんな退出しましたか？","Everyone got out?"],
+[73,7,1,"いいよ","Sure, go ahead."],
+[74,7,0,"お掃除始めますね","I'll start cleaning now."],
+[75,8,0,"知らせてくれてありがとうございます","Thank you for letting me know."],
+[76,8,0,"すぐに対応いたします","I'll take care of it right away."],
+[77,8,0,"ご不便をおかけして申し訳ありません","I'm sorry for the inconvenience."],
+[78,8,0,"オーナーに連絡する必要があります","I need to contact the owner."],
+[79,8,0,"ホストに連絡を取っていただく必要があります","You'll need to contact the host."],
+[80,9,1,"この辺にコンビニはありますか？","Is there a convenience store near here?"],
+[81,9,1,"この辺に食べるところはありますか？","Is there a place to eat around here?"],
+[82,9,0,"（ここから）5分くらいかかります","It's about five minutes from here."],
+[83,10,0,"日本はいかがですか？","How do you like Japan?"],
+[84,10,0,"楽しんでますか？","Are you enjoying your trip?"],
+[85,10,0,"お部屋はいかがですか？","How do you like the room?"],
+[86,10,0,"よかったです！","That's great!"],
+[87,10,0,"それは残念！","Oh, that's too bad."],
+[88,10,0,"気に入ってくれてうれしいです","I'm glad you like it."],
+[89,10,0,"無事到着されてうれしいです","I'm glad you got here safely."],
+[90,10,0,"ご滞在ありがとうございました","Thank you for staying with us."],
+[91,10,0,"気をつけて帰ってね","Have a safe trip!"],
+[92,10,0,"また会いましょう","See you again!"],
+[93,10,0,"ごきげんよう！","Have a great day!"],
+[94,4,1,"全員分ですか？","All of us?"],
+[95,4,0,"はい、皆さん全員です","Yes, all of you."],
+[96,4,1,"水道の水は飲めますか？","Can I drink the tap water?"],
+[97,4,0,"はい、飲めますよ","Yes, you can drink it."],
+[98,7,0,"助かります、ありがとうございます","Thanks, I appreciate it."],
+[99,2,0,"お手伝いしますね（大変そうなとき）","Let me help you."],
+[100,5,0,"お部屋にお伺いいたします","I'll come to your room."],
+[101,5,1,"タオルは交換できますか？","Can you change the towels?"]
+];
+const NOTE={71:"使う場面：チェックアウト時間を大きく過ぎても出てこない人に（30分以上など）。強めの言い方なので、ふだんは70を使います。"};
+// 清掃員のフレーズに付けるゲストのセリフ: 番号: [前/後, 英語, 日本語]
+const PAIR={"100":["前","Can you bring some towels?","タオルを持ってきてもらえますか？"],"1": ["後", "Oh, hi!", "あ、こんにちは！"], "2": ["後", "Oh, sorry. We're still here.", "あ、すみません。まだいます。"], "3": ["後", "OK, thank you.", "はい、ありがとう。"], "4": ["後", "Oh, thank you!", "わあ、ありがとう！"], "5": ["前", "The light in the bathroom doesn't work.", "お風呂場の電気がつかないんです。"], "6": ["後", "Sure, come in.", "どうぞ、入って。"], "7": ["後", "OK. They're in the bathroom.", "はい、お風呂場にあります。"], "8": ["前", "What's wrong with it?", "どうしたんですか？"], "9": ["前", "Is something wrong?", "何かありましたか？"], "10": ["後", "I can't find the light switch.", "電気のスイッチが見つからないんです。"], "11": ["後", "Yes, please. This door won't open.", "はい、お願いします。このドアが開かないんです。"], "12": ["前", "Where is the hair dryer?", "ドライヤーはどこですか？"], "13": ["前", "Hello? Is anyone here?", "すみません、誰かいますか？"], "16": ["前", "Can I check in now?", "今チェックインできますか？"], "17": ["前", "When can I come back?", "いつ戻ってくればいいですか？"], "18": ["前", "Can you keep my luggage?", "荷物を預かってもらえますか？"], "19": ["後", "Three bags.", "3個です。"], "20": ["前", "We have three suitcases.", "スーツケースが3つあります。"], "21": ["後", "OK, I'll take them with me.", "わかりました、持って行きます。"], "22": ["後", "Sure, no problem.", "はい、どうぞ。"], "23": ["前", "The host said we can check in early.", "ホストが早くチェックインしていいと言っていました。"], "24": ["前", "The Wi-Fi isn't working.", "Wi-Fiがつながりません。"], "25": ["前", "How do I get the door code?", "ドアの暗証番号はどうやってわかりますか？"], "26": ["前", "Can we stay a little longer?", "もう少しいてもいいですか？"], "27": ["前", "Can I change my reservation?", "予約を変更できますか？"], "28": ["後", "Yes, I am.", "はい、そうです。"], "30": ["前", "Hi, we have a reservation.", "こんにちは、予約しています。"], "31": ["後", "Room 301.", "301号室です。"], "32": ["後", "It's Smith.", "スミスです。"], "33": ["前", "My name is John Smith.", "ジョン・スミスです。"], "34": ["後", "Sure. Here you are.", "はい、どうぞ。"], "35": ["前", "Do you need my passport?", "私のパスポートが必要ですか？"], "36": ["前", "Is that all?", "これで全部ですか？"], "37": ["前", "How do I open the door?", "ドアはどうやって開けますか？"], "38": ["前", "Is the room ready?", "部屋の準備はできていますか？"], "39": ["前", "Which floor is our room?", "部屋は何階ですか？"], "40": ["前", "Is there an elevator?", "エレベーターはありますか？"], "41": ["前", "How do I go upstairs?", "上の階へはどう行けばいいですか？"], "42": ["前", "Where is the laundry room?", "洗濯室はどこですか？"], "43": ["前", "Where is room 401?", "401号室はどこですか？"], "44": ["後", "Oh, OK.", "あ、わかりました。"], "45": ["前", "Where should I put my shoes?", "靴はどこに置けばいいですか？"], "46": ["前", "Are there slippers?", "スリッパはありますか？"], "47": ["前", "Where is the key?", "鍵はどこですか？"], "48": ["前", "What should I do with the key?", "鍵はどうすればいいですか？"], "49": ["前", "We're going out now.", "今から出かけます。"], "50": ["前", "Thank you for your help.", "いろいろありがとう。"], "51": ["前", "Can you change the towels?", "タオルを替えてもらえますか？"], "52": ["前", "Can I get a new one?", "新しいのをもらえますか？"], "55": ["前", "I'm looking for my glasses.", "めがねを探しているんです。"], "56": ["後", "Oh! Yes, it's mine. Thanks!", "あ！私のです。ありがとう！"], "58": ["前", "Can I have it back?", "返してもらえますか？"], "59": ["前", "Thank you so much!", "本当にありがとう！"], "60": ["後", "Yes, I think so.", "はい、たぶん大丈夫です。"], "61": ["前", "OK, we're ready to go.", "よし、出発の準備ができました。"], "62": ["後", "Yes, we're leaving now.", "はい、もう出ます。"], "63": ["前", "What time is check-out?", "チェックアウトは何時ですか？"], "64": ["後", "Oh, really? Already?", "え、もうですか？"], "66": ["後", "About ten minutes.", "10分くらいです。"], "68": ["前", "Can you give us ten more minutes?", "あと10分もらえますか？"], "70": ["前", "We're still packing.", "まだ荷造り中です。"], "71": ["前", "Just a little more time, please.", "もう少しだけ待ってください。"], "72": ["後", "Yes, everyone's out.", "はい、全員出ました。"], "74": ["前", "Sure, go ahead.", "いいよ。"], "75": ["前", "The toilet is clogged.", "トイレが詰まっています。"], "76": ["前", "The air conditioner isn't working.", "エアコンが動きません。"], "77": ["前", "There's no hot water.", "お湯が出ません。"], "78": ["前", "The window won't lock.", "窓の鍵がかかりません。"], "79": ["前", "Can I get a refund?", "返金してもらえますか？"], "82": ["前", "How far is it?", "どのくらい遠いですか？"], "83": ["後", "I love it!", "すごく好きです！"], "84": ["後", "Yes, very much!", "はい、とても！"], "85": ["後", "It's very nice.", "とてもいいです。"], "86": ["前", "We went to Mt. Fuji yesterday.", "昨日富士山に行きました。"], "87": ["前", "It rained every day.", "毎日雨でした。"], "88": ["前", "I really like this room.", "この部屋、本当に気に入りました。"], "89": ["前", "Finally, we made it!", "やっと着きました！"], "90": ["前", "We had a great time.", "とても楽しかったです。"], "91": ["後", "Thank you! Bye!", "ありがとう、さようなら！"], "92": ["後", "See you!", "またね！"], "93": ["後", "You too!", "あなたも！"], "95": ["前", "All of us?", "全員分ですか？"], "97": ["前", "Can I drink the tap water?", "水道の水は飲めますか？"], "98": ["前", "OK, I'll be right out.", "すぐ出ます。"], "99": ["前", "These bags are so heavy.", "この荷物、すごく重い。"]};
+const PH={};P.forEach(r=>PH[r[0]]={id:r[0],sc:r[1],g:!!r[2],ja:r[3],en:r[4]});
+
+// 会話（場面ごと）: 数字＝フレーズ番号、配列＝[who, 英語, 日本語]（会話用に足したゲストのセリフ）
+const D=[
+ [1,[1,["g","Oh, hi.","あ、こんにちは。"],3,6,73,7]],
+ [2,[10,["g","I can't open this door.","このドアが開かないんです。"],11,["g","Yes, please.","はい、お願いします。"],12]],
+ [3,[13,14,16,15,18,19,["g","Five bags.","5個です。"],99,20,21,17]],
+ [4,[28,29,30,44,31,["g","Room 301.","301号室です。"],34,35,94,95,39,40,96,97,50]],
+ [5,[101,51,52,["g","OK. I'd like new ones, please.","じゃあ、新しいのをお願いします。"],24,100]],
+ [6,[53,55,54,56,57,58,["g","Thank you so much!","本当にありがとう！"],59]],
+ [7,[2,64,65,98,66,67,68,72,73,74]],
+ [8,[["g","The shower isn't working.","シャワーが出ないんです。"],75,77,78,76]],
+ [9,[80,82,["g","Thank you!","ありがとう！"],59]],
+ [10,[83,["g","I love it!","すごく好きです！"],86,85,["g","It's very nice.","とてもいいです。"],88,90,91,92]]
+];
+
+/* ===== 保存（この端末のブラウザだけ） ===== */
+const KEY="seisou-eikaiwa-v1";
+let S={done:{},dlg:{},inT:"3",outT:"11",floor:"3",slow:false,showEn:false,voice:"auto"};
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s)S=Object.assign(S,s);}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function fill(t){return t.replace(/\{in\}/g,S.inT).replace(/\{out\}/g,S.outT).replace(/\{floor\}/g,S.floor);}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ===== 読み上げ ===== */
+let voices=[];
+function loadVoices(){try{voices=(speechSynthesis.getVoices()||[]).filter(v=>/^en[-_]/i.test(v.lang));}catch(e){voices=[]}try{const el=document.getElementById("svoice");if(el)el.innerHTML=voiceOptions();}catch(e){}}
+if(window.speechSynthesis){loadVoices();try{speechSynthesis.onvoiceschanged=loadVoices;}catch(e){}}
+let ctts=null;
+// 自然な声を優先し、機械っぽい声・おもしろ声は後回しにする
+const GOOD=/natural|neural|premium|enhanced|google us english|samantha|ava|aria|jenny|allison|zoe|evan|nathan|joelle|susan|tom|michelle|emma|guy|christopher/i;
+const BAD=/compact|eloquence|desktop|fred|albert|bad news|bells|boing|bubbles|cellos|junior|ralph|trinoids|whisper|zarvox|superstar|grandma|grandpa|eddy|flo|reed|rocko|sandy|shelley|wobble|organ|jester/i;
+function rankVoice(v){let r=0;if(/en[-_]US/i.test(v.lang))r+=4;if(GOOD.test(v.name))r+=6;if(/natural|neural|premium|enhanced/i.test(v.name))r+=4;if(BAD.test(v.name))r-=10;if(v.localService===false)r+=1;return r;}
+function rankedVoices(){return voices.slice().sort((a,b)=>rankVoice(b)-rankVoice(a));}
+function pickVoice(guest){
+  if(!voices.length)return null;
+  const list=rankedVoices();
+  if(S.voice&&S.voice!=="auto"&&S.voice!=="claude"){const v=voices.find(x=>x.name===S.voice);if(v){if(!guest)return v;return list.find(x=>x.name!==v.name&&rankVoice(x)>0)||v;}}
+  if(!guest)return list[0];
+  return list.find((x,i)=>i>0&&rankVoice(x)>=rankVoice(list[0])-4)||list[0];
+}
+let speakTok=0,spokeTok=-1,isSpeaking=false;
+function useClaudeVoice(){return ctts&&(S.voice==="claude"||((!S.voice||S.voice==="auto")));}
+function speak(text,guest,slow){
+  const rate=(slow||S.slow)?0.7:0.95;
+  if(useClaudeVoice()){
+    try{speechSynthesis.cancel()}catch(e){}
+    if(!ttsWired){ttsWired=true;try{ctts.onState(({state})=>{if(state==="speaking"){spokeTok=speakTok;isSpeaking=true;}else isSpeaking=false;});}catch(e){}}
+    const tok=++speakTok;
+    // Claudeの声が出なかったときだけ端末の声に切り替える（次の再生で止められた時は何もしない＝二重再生を防ぐ）
+    ctts.speak(text,{voice:guest?"airy":"buttery",rate:Math.max(.7,rate),language:"en"}).catch(()=>{if(tok===speakTok&&spokeTok!==tok)nativeSpeak(text,guest,rate,true);});return;
+  }
+  if(!nativeSpeak(text,guest,rate))toast("この画面では音声が出せません");
+}
+function nativeSpeak(text,guest,rate,fromFallback){
+  if(!(window.speechSynthesis&&window.SpeechSynthesisUtterance))return false;
+  try{
+    if(!fromFallback){try{ctts&&ctts.stop()}catch(e){}}
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);u.lang="en-US";u.rate=rate;
+    const v=pickVoice(guest);if(v)u.voice=v;
+    if(v&&pickVoice(false)&&v.name===pickVoice(false).name&&guest)u.pitch=1.15;
+    u.onstart=()=>{isSpeaking=true;};u.onend=u.onerror=()=>{isSpeaking=false;};
+    speechSynthesis.speak(u);return true;
+  }catch(e){return false;}
+}
+
+/* ===== 聞き取り ===== */
+let dict=null;const NativeRec=window.SpeechRecognition||window.webkitSpeechRecognition;
+function micMode(){return dict?"dict":(NativeRec?"native":"none");}
+let listening=null;let dcur=null;let dictWired=false,ttsWired=false;
+function startListen(onPartial,onDone,onFail){
+  if(dict){
+    // 聞き取りの受け口は1回だけ登録し、いま開いている練習画面にだけ結果を渡す
+    if(!dictWired){
+      dictWired=true;
+      dict.onPartial(({text})=>{const c=dcur;if(c)c.onPartial((c.txt+" "+text).trim());});
+      dict.onFinal(({text})=>{const c=dcur;if(!c)return;const t=(text||"").trim();if(t&&!c.txt.endsWith(t)){c.txt=t.toLowerCase().startsWith(c.txt.toLowerCase())?t:(c.txt+" "+t).trim();}c.onPartial(c.txt);clearTimeout(c.timer);c.timer=setTimeout(()=>dict.stop().catch(()=>{}),1300);});
+      dict.onState(({state,reason})=>{const c=dcur;if(state==="idle"&&c){dcur=null;listening=null;clearTimeout(c.timer);if(c.txt)c.onDone([c.txt]);else c.onFail(reason==="viewer_stopped"||reason==="stopped"?"no-speech":(reason||"no-speech"));}});
+    }
+    try{speechSynthesis.cancel()}catch(e){} try{ctts&&ctts.stop()}catch(e){}
+    dcur={txt:"",timer:null,onPartial,onDone,onFail};
+    listening={stop:()=>{dict.stop().catch(()=>{});}};
+    dict.start().catch(err=>{dcur=null;listening=null;onFail(err&&err.code||String(err));});
+    return;
+  }
+  if(NativeRec){
+    const r=new NativeRec();r.lang="en-US";r.interimResults=true;r.maxAlternatives=3;r.continuous=false;
+    let alts=[];
+    r.onresult=e=>{const res=e.results[e.results.length-1];alts=[];for(let i=0;i<res.length;i++)alts.push(res[i].transcript);onPartial(alts[0]||"");};
+    r.onerror=e=>{if(listening){listening=null;onFail(e.error);}};
+    r.onend=()=>{if(listening){listening=null;onDone(alts);}};
+    listening={stop:()=>{try{r.stop()}catch(e){}}};
+    try{r.start();}catch(e){listening=null;onFail("start");}
+    return;
+  }
+  onFail("none");
+}
+
+/* ===== 判定 ===== */
+const NUM={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,twenty:20,thirty:30};
+const CON={"i'm":"i am","you're":"you are","it's":"it is","that's":"that is","there's":"there is","i'll":"i will","you'll":"you will","i've":"i have","i'd":"i would","you'd":"you would","don't":"do not","can't":"can not","cannot":"can not","haven't":"have not","isn't":"is not","we're":"we are","let's":"let us","everyone's":"everyone s","okay":"ok"};
+function norm(t){
+  t=t.toLowerCase().replace(/[’‘]/g,"'").replace(/a\.\s?m\.?/g,"am").replace(/p\.\s?m\.?/g,"pm").replace(/-/g," ").replace(/\bcheck(out|in)\b/g,"check $1").replace(/[^a-z0-9' ]/g," ");
+  return t.split(/\s+/).filter(Boolean).flatMap(w=>{if(CON[w])return CON[w].split(" ");if(NUM[w]!==undefined)return [String(NUM[w])];return [w];}).map(w=>w.replace(/'s$/,"").replace(/'/g,""));
+}
+function score(target,heard){
+  const tw=target.split(/\s+/).filter(Boolean);const pool=norm(heard);
+  const used=new Array(pool.length).fill(false);let ok=0,tot=0;
+  const marks=tw.map(w=>{
+    const parts=norm(w);if(!parts.length)return{w,ok:true,skip:true};
+    let all=true;parts.forEach(p=>{tot++;const i=pool.findIndex((x,k)=>!used[k]&&x===p);if(i>=0){used[i]=true;ok++;}else all=false;});
+    return{w,ok:all};
+  });
+  return{marks,pct:tot?Math.round(ok/tot*100):0};
+}
+function bestScore(target,alts){let best=null;(alts||[]).forEach(a=>{const s=score(target,a||"");s.heard=a;if(!best||s.pct>best.pct)best=s;});return best||{marks:target.split(/\s+/).map(w=>({w,ok:false})),pct:0,heard:""};}
+
+/* ===== 画面 ===== */
+let view="phr";let openScene=null;
+const main=document.getElementById("main");
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{view=b.dataset.v;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===b));render();});
+function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("on");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("on"),1800);}
+function updTotal(){
+  if(view==="dlg"){const n=D.filter(d=>S.dlg[d[0]]).length;document.getElementById("total").textContent=`会話：${n} / ${D.length} 場面できた`;document.getElementById("totalbar").style.width=(n/D.length*100)+"%";return;}
+  const n=P.filter(r=>S.done[r[0]]).length;document.getElementById("total").textContent=`フレーズ：${n} / ${P.length} できた`;document.getElementById("totalbar").style.width=(n/P.length*100)+"%";
+}
+function render(){updTotal();if(view==="phr")renderPhr();else if(view==="dlg")renderDlgList();else renderSet();window.scrollTo(0,0);}
+
+function renderPhr(){
+  main.innerHTML=SCENES.map((nm,i)=>{
+    const sc=i+1;const rows=P.filter(r=>r[1]===sc);const d=rows.filter(r=>S.done[r[0]]).length;
+    return `<div class="scene${openScene===sc?" open":""}" data-sc="${sc}">
+      <button class="scene-h"><span class="no">${sc}</span><span class="nm">${esc(nm)}</span><span class="ct">${d}/${rows.length}</span><span class="ar">›</span></button>
+      <div class="plist">${rows.map(r=>`<button class="prow" data-id="${r[0]}"><span class="n">${r[0]}</span><span class="t">${esc(fill(r[3]))}</span>${r[2]?'<span class="g">ゲスト</span>':""}<span class="d">${S.done[r[0]]?"✓":""}</span></button>`).join("")}</div></div>`;
+  }).join("")+`<p class="note">場面をタップすると一覧が開きます。フレーズをタップすると練習画面になります。</p>`;
+  main.querySelectorAll(".scene-h").forEach(h=>h.onclick=()=>{const sc=+h.parentNode.dataset.sc;openScene=openScene===sc?null:sc;main.querySelectorAll(".scene").forEach(s=>s.classList.toggle("open",+s.dataset.sc===openScene));});
+  main.querySelectorAll(".prow").forEach(b=>b.onclick=()=>openPhrase(+b.dataset.id));
+}
+
+/* フレーズ練習シート */
+const sheet=document.getElementById("sheet"),sheetbg=document.getElementById("sheetbg"),sheetin=document.getElementById("sheetin");
+function closeSheet(){if(listening)listening.stop();sheet.classList.remove("on");sheetbg.classList.remove("on");if(view==="phr")renderPhr();updTotal();}
+sheetbg.onclick=closeSheet;
+function openPhrase(id){
+  if(listening)listening.stop();
+  const p=PH[id];const en=fill(p.en),ja=fill(p.ja);const ids=P.filter(r=>r[1]===p.sc).map(r=>r[0]);const ix=ids.indexOf(id);
+  sheetin.innerHTML=`
+    <div class="sh-top"><span>${p.sc}. ${esc(SCENES[p.sc-1])}　No.${id}</span><button class="x" id="sx">✕</button></div>
+    <span class="who ${p.g?"g":"s"}">${p.g?"ゲストのセリフ（聞き取り練習）":"清掃員のセリフ（言う練習）"}</span>
+    ${p.g?`<div class="ja" id="pja" style="display:none">${esc(ja)}</div>`:`<div class="ja">${esc(ja)}</div>`}
+    <div class="en ${S.showEn?"":"hide"}" id="pen">${esc(en)}</div>
+    ${NOTE[id]?`<div class="note" style="background:var(--guest-soft);color:var(--guest);border-radius:8px;padding:6px 10px">⚠ ${esc(NOTE[id])}</div>`:""}
+    ${p.g?`<div class="btns"><button class="b gp" id="bplay" style="flex:1;padding:14px">🔊 聞く</button><button class="b" id="bslow">🐢 ゆっくり</button></div>
+    <div class="btns"><button class="b" id="bja">意味を見る</button><button class="b" id="ben">英語を見る</button></div>
+    <div class="btns"><button class="b" id="bmic" style="font-size:13px;padding:6px 12px;color:var(--sub)">🎤 まねして言う（やらなくてもOK）</button></div>`
+    :`<div class="btns">
+      <button class="b p" id="bplay">🔊 お手本</button>
+      <button class="b" id="bslow">🐢 ゆっくり</button>
+      <button class="b" id="ben">英語を見る</button>
+    </div>
+    <div class="btns"><button class="b mic" id="bmic">🎤 英語で言ってみる</button></div>`}
+    <div class="res" id="res"></div>
+    <div class="nav">
+      <button class="b" id="bprev" ${ix<=0?"disabled":""}>← 前</button>
+      <button class="b done-btn ${S.done[id]?"on":""}" id="bdone">${S.done[id]?"✓ "+(p.g?"聞き取れた":"できた"):(p.g?"聞き取れた":"できた")}</button>
+      <button class="b" id="bnext" ${ix>=ids.length-1?"disabled":""}>次 →</button>
+    </div>`;
+  sheet.classList.add("on");sheetbg.classList.add("on");
+  const $=s=>document.getElementById(s);
+  $("sx").onclick=closeSheet;
+  $("bplay").onclick=()=>speak(en,p.g,false);
+  $("bslow").onclick=()=>speak(en,p.g,true);
+  $("ben").onclick=()=>{$("pen").classList.toggle("hide");};
+  if(p.g)$("bja").onclick=()=>{const e=$("pja");e.style.display=e.style.display==="none"?"block":"none";};
+  $("bprev").onclick=()=>openPhrase(ids[ix-1]);
+  $("bnext").onclick=()=>openPhrase(ids[ix+1]);
+  const setDone=v=>{if(v)S.done[id]=true;else delete S.done[id];save();const b=$("bdone");const lb=p.g?"聞き取れた":"できた";b.classList.toggle("on",!!v);b.textContent=v?"✓ "+lb:lb;updTotal();};
+  $("bdone").onclick=()=>setDone(!S.done[id]);
+  wireMic($("bmic"),$("res"),en,()=>setDone(true),()=>{$("pen").classList.remove("hide");});
+  if(p.g)speak(en,true,false);
+}
+
+function wireMic(btn,res,en,onGood,onReveal,echo){
+  const label=btn.textContent;
+  btn.onclick=()=>{
+    if(listening){listening.stop();return;}
+    if(isSpeaking){try{speechSynthesis.cancel()}catch(e){} try{ctts&&ctts.stop()}catch(e){} isSpeaking=false;toast("声を止めました。もう一度🎤を押して話してください");return;}
+    if(micMode()==="none"){showSelf();return;}
+    btn.classList.add("rec");btn.textContent="⏹ 聞いています…（タップで終わる）";
+    res.className="res on";res.innerHTML=`<div class="heard">聞き取り中：<span id="live"></span></div>`;
+    startListen(t=>{const l=res.querySelector("#live");if(l)l.textContent=t;},
+      alts=>{btn.classList.remove("rec");btn.textContent=label;showResult(alts);},
+      err=>{btn.classList.remove("rec");btn.textContent=label;
+        if(err==="no-speech"){res.innerHTML=`<div class="msg">声が聞こえませんでした。もう一度どうぞ。</div>`;return;}
+        showSelf("マイクが使えませんでした。");});
+  };
+  function showResult(alts){
+    const s=bestScore(en,alts);
+    if(echo&&s.pct<50){const e=bestScore(echo,alts);if(e.pct>=70){
+      res.className="res on";
+      res.innerHTML=`<div class="heard">聞き取った言葉：${esc(e.heard||"")}</div><div class="msg" style="color:var(--guest)">それはゲストのセリフです。</div><div class="note">あなた（清掃員）が言うのは、上の日本語のセリフです。英語を見てから、もう一度どうぞ。<br>（ゲストの声をマイクが拾った場合は、声が終わってから🎤を押すか、イヤホンを使ってください）</div>`;onReveal&&onReveal();res.innerHTML+=``;
+      return;}}
+    const msg=s.pct>=80?"よくできました！":s.pct>=50?"おしい！赤いところをもう一度。":"お手本を聞いてから、もう一度どうぞ。";
+    res.className="res on";
+    res.innerHTML=`<div class="heard">聞き取った言葉：${esc(s.heard||"（なし）")}</div>
+      <div class="words">${s.marks.map(m=>`<span class="w ${m.ok?"ok":"ng"}">${esc(m.w)}</span>`).join(" ")}</div>
+      <div class="msg" style="color:${s.pct>=80?"var(--ok)":"var(--ng)"}">${s.pct}点　${msg}</div>`;
+    onReveal&&onReveal();
+    if(s.pct>=80)onGood&&onGood();
+  }
+  function showSelf(pre){
+    res.className="res on";
+    res.innerHTML=`<div>${pre?esc(pre)+"<br>":""}この画面では聞き取りが使えません。声に出して言ってから、英語を見て自分で判定してください。</div>
+      <div class="self"><button class="b p" id="sok">○ 言えた</button><button class="b" id="sng">△ もう一度</button></div>`;
+    onReveal&&onReveal();
+    res.querySelector("#sok").onclick=()=>{onGood&&onGood();res.innerHTML=`<div class="msg" style="color:var(--ok)">よくできました！</div>`;};
+    res.querySelector("#sng").onclick=()=>{res.className="res";};
+  }
+}
+
+/* 会話 */
+function dlgLines(sc){return D.find(d=>d[0]===sc)[1].map(x=>{if(Array.isArray(x))return{g:x[0]==="g",en:x[1],ja:x[2]};const p=PH[x];return{g:p.g,en:fill(p.en),ja:fill(p.ja),id:x};});}
+function renderDlgList(){
+  main.innerHTML=`<div class="set" style="margin-top:12px"><h3>🎲 1問1答（ランダム）</h3>
+    <div class="note" style="margin-top:0">ゲストに何を言われるかわからない状態で、清掃員のセリフを返す練習です。</div>
+    <div class="row"><span style="white-space:nowrap">場面</span><select id="qasc"><option value="0">全部まぜる</option>${SCENES.map((n,i)=>PAIRIDS(i+1).length?`<option value="${i+1}">${i+1}. ${esc(n)}</option>`:"").join("")}</select></div>
+    <div class="btns"><button class="b p" id="qago" style="flex:1">はじめる</button></div></div>
+    <h3 style="font-size:15px;margin:18px 0 0">場面ごとの会話</h3><div class="dlist">`+D.map(d=>{const sc=d[0];return `<div class="scene"><button class="scene-h" data-sc="${sc}"><span class="no">${sc}</span><span class="nm">${esc(SCENES[sc-1])}</span><span class="ct">${dlgLines(sc).length}行</span><span class="d" style="color:var(--ok);font-weight:700;width:20px">${S.dlg[sc]?"✓":""}</span><span class="ar">›</span></button></div>`;}).join("")+`</div><p class="note">ゲスト（オレンジ）の声を聞いて、清掃員（緑）のセリフを英語で返します。</p>`;
+  main.querySelectorAll(".scene-h").forEach(h=>h.onclick=()=>playDlg(+h.dataset.sc));
+  document.getElementById("qago").onclick=()=>playQA(+document.getElementById("qasc").value);
+}
+function PAIRIDS(sc){return P.filter(r=>!r[2]&&PAIR[r[0]]&&(!sc||r[1]===sc)).map(r=>r[0]);}
+function playQA(sc){
+  const pool=PAIRIDS(sc);let deck=[],qn=0,ok=0;
+  const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+  main.innerHTML=`<div class="dhead"><button class="b" id="qback">← 一覧</button><span class="tt">🎲 1問1答</span><span class="note" id="qcnt" style="margin:0"></span></div><div id="qbox"></div>`;
+  document.getElementById("qback").onclick=()=>{if(listening)listening.stop();try{speechSynthesis.cancel()}catch(e){}try{ctts&&ctts.stop()}catch(e){}renderDlgList();updTotal();};
+  const box=document.getElementById("qbox");
+  function next(){
+    if(listening)listening.stop();
+    if(!deck.length)deck=shuffle(pool.slice());
+    const id=deck.pop();qn++;const p=PH[id],pr=PAIR[id];const en=fill(p.en),ja=fill(p.ja),gen=fill(pr[1]),gja=fill(pr[2]);const before=pr[0]==="前";
+    document.getElementById("qcnt").textContent=`${qn}問目・よくできた ${ok}`;
+    const gb=`<div class="bub g" id="qg"><div class="lb">ゲスト</div><div class="e hide" id="qge">${esc(gen)}</div><div class="j" id="qgj" style="display:none">${esc(gja)}</div>
+      <div class="btns" style="margin-top:6px"><button class="b gp" id="qgplay" style="padding:6px 12px">🔊 ${before?"もう一度聞く":"返事を聞く"}</button><button class="b" id="qgshow" style="padding:6px 12px">文字を見る</button></div></div>`;
+    box.innerHTML=`<div class="chat">${before?gb:""}</div>
+      <div class="turn"><span class="who s">あなたの番</span>
+        <div class="ja" id="qja" ${before?'style="display:none"':""}>${esc(ja)}</div>
+        ${before?`<div class="note" id="qhintn" style="margin-top:4px">ゲストに何と言われたか聞いて、英語で返してください。</div>`:""}
+        <div class="en ${S.showEn?"":"hide"}" id="qen">${esc(en)}</div>
+        <div class="btns"><button class="b mic" id="qmic">🎤 英語で返す</button></div><div class="res" id="qres"></div>
+        <div class="btns">${before?`<button class="b" id="qhint">💡 ヒント（日本語）</button>`:""}<button class="b" id="qplay">🔊 お手本</button><button class="b" id="qshow">英語を見る</button></div></div>
+      <div class="chat">${before?"":gb}</div>
+      <div class="btns"><button class="b p" id="qnext" style="flex:1">次の問題 →</button></div>
+      <p class="note">${sc?"練習中の場面："+esc(SCENES[sc-1]):"全部まぜて練習中"}　/　No.${id}</p>`;
+    const $=x=>document.getElementById(x);
+    const showG=()=>{$("qge").classList.remove("hide");$("qgj").style.display="block";};
+    const reveal=()=>$("qen").classList.remove("hide");
+    $("qgplay").onclick=()=>{speak(gen,true);if(!before)showG();};
+    $("qgshow").onclick=showG;
+    if(before){$("qhint").onclick=()=>{$("qja").style.display="block";$("qhintn").style.display="none";};}
+    $("qplay").onclick=()=>{reveal();speak(en,false);};
+    $("qshow").onclick=reveal;
+    $("qnext").onclick=next;
+    let counted=false;
+    wireMic($("qmic"),$("qres"),en,()=>{S.done[id]=true;save();if(!counted){counted=true;ok++;document.getElementById("qcnt").textContent=`${qn}問目・よくできた ${ok}`;}if(!before){showG();setTimeout(()=>speak(gen,true),600);}},()=>{reveal();if(before){$("qja").style.display="block";$("qhintn").style.display="none";}},before?gen:null);
+    if(before)setTimeout(()=>speak(gen,true),250);
+    window.scrollTo(0,0);
+  }
+  next();
+}
+function playDlg(sc){
+  const L=dlgLines(sc);let step=0;
+  main.innerHTML=`<div class="dhead"><button class="b" id="dback">← 一覧</button><span class="tt">${sc}. ${esc(SCENES[sc-1])}</span><button class="b" id="dre">最初から</button></div><div class="chat" id="chat"></div><div id="turn"></div>`;
+  document.getElementById("dback").onclick=()=>{if(listening)listening.stop();try{speechSynthesis.cancel()}catch(e){}renderDlgList();updTotal();};
+  document.getElementById("dre").onclick=()=>playDlg(sc);
+  const chat=document.getElementById("chat"),turn=document.getElementById("turn");
+  function addBub(l,hideEn){
+    const d=document.createElement("div");d.className="bub "+(l.g?"g":"s");
+    d.innerHTML=`<div class="lb">${l.g?"ゲスト":"あなた（清掃員）"}</div><div class="e${hideEn?" hide":""}">${esc(l.en)}</div><div class="j">${esc(l.ja)}</div>`;
+    if(l.g){d.style.cursor="pointer";d.onclick=()=>{d.querySelector(".e").classList.remove("hide");speak(l.en,true);};}
+    chat.appendChild(d);return d;
+  }
+  function next(){
+    if(step>=L.length){
+      S.dlg[sc]=true;save();updTotal();
+      turn.innerHTML=`<div class="turn"><div class="msg" style="color:var(--ok);font-weight:700">この場面の会話ができました！</div><div class="btns"><button class="b p" id="dnext">${sc<10?"次の場面へ →":"一覧へ"}</button><button class="b" id="dagain">もう一度</button></div></div>`;
+      document.getElementById("dnext").onclick=()=>sc<10?playDlg(sc+1):renderDlgList();
+      document.getElementById("dagain").onclick=()=>playDlg(sc);
+      return;
+    }
+    const l=L[step];
+    if(l.g){
+      const b=addBub(l,!S.showEn);speak(l.en,true);
+      turn.innerHTML=`<div class="turn"><div class="btns"><button class="b gp" id="gplay">🔊 もう一度聞く</button><button class="b" id="gslow">🐢 ゆっくり</button><button class="b" id="gshow">英語を見る</button></div><div class="btns"><button class="b p" id="gnext" style="flex:1">わかった → 次へ</button></div></div>`;
+      document.getElementById("gplay").onclick=()=>speak(l.en,true);
+      document.getElementById("gslow").onclick=()=>speak(l.en,true,true);
+      document.getElementById("gshow").onclick=()=>b.querySelector(".e").classList.remove("hide");
+      document.getElementById("gnext").onclick=()=>{b.querySelector(".e").classList.remove("hide");step++;next();};
+    }else{
+      turn.innerHTML=`<div class="turn"><span class="who s">あなたの番</span><div class="ja">${esc(l.ja)}</div><div class="en ${S.showEn?"":"hide"}" id="ten">${esc(l.en)}</div>
+        <div class="btns"><button class="b mic" id="tmic">🎤 英語で言ってみる</button></div><div class="res" id="tres"></div>
+        <div class="btns"><button class="b" id="tplay">🔊 お手本</button><button class="b" id="tshow">英語を見る</button><button class="b p" id="tnext" style="flex:1">次へ →</button></div></div>`;
+      const reveal=()=>document.getElementById("ten").classList.remove("hide");
+      wireMic(document.getElementById("tmic"),document.getElementById("tres"),l.en,()=>{if(l.id){S.done[l.id]=true;save();}},reveal,(step>0&&L[step-1].g)?L[step-1].en:null);
+      document.getElementById("tplay").onclick=()=>{reveal();speak(l.en,false);};
+      document.getElementById("tshow").onclick=reveal;
+      document.getElementById("tnext").onclick=()=>{if(listening)listening.stop();addBub(l,false);step++;next();};
+    }
+    setTimeout(()=>turn.scrollIntoView({behavior:"smooth",block:"end"}),50);
+  }
+  next();
+}
+
+/* 設定 */
+function voiceOptions(){
+  const cur=S.voice||"auto";const o=[`<option value="auto"${cur==="auto"?" selected":""}>おまかせ</option>`];
+  if(ctts)o.push(`<option value="claude"${cur==="claude"?" selected":""}>Claudeの声（PCのみ）</option>`);
+  rankedVoices().forEach(v=>o.push(`<option value="${esc(v.name)}"${cur===v.name?" selected":""}>${esc(v.name)}（${esc(v.lang)}）</option>`));
+  return o.join("");
+}
+function renderSet(){
+  const opt=(arr,v)=>arr.map(x=>`<option${String(x)===String(v)?" selected":""}>${x}</option>`).join("");
+  const mm=micMode();
+  main.innerHTML=`
+  <div class="set"><h3>物件ごとの設定</h3>
+    <div class="row"><span>チェックイン（午後○時）</span><select id="sin">${opt([1,2,3,4,5,6],S.inT)}</select></div>
+    <div class="row"><span>チェックアウト（午前○時）</span><select id="sout">${opt([8,9,10,11,12],S.outT)}</select></div>
+    <div class="row"><span>部屋の階（○階）</span><select id="sfl">${opt([1,2,3,4,5,6,7,8,9,10],S.floor)}</select></div>
+  </div>
+  <div class="set"><h3>練習のしかた</h3>
+    <div class="row"><span>いつもゆっくり読み上げる</span><button class="sw ${S.slow?"on":""}" id="sslow"></button></div>
+    <div class="row"><span>英語を最初から見せる</span><button class="sw ${S.showEn?"on":""}" id="sshow"></button></div>
+  </div>
+  <div class="set"><h3>この画面で使える機能</h3>
+    <div class="env">🔊 読み上げ：<b>${(window.speechSynthesis||ctts)?"使えます":"使えません"}</b></div>
+    <div class="env">🎤 聞き取り：<b>${mm==="none"?"使えません（自分で判定する形になります）":"使えます"}</b></div>
+    <div class="row"><span>お手本の声</span><select id="svoice" style="max-width:60%">${voiceOptions()}</select></div>
+    <div class="btns"><button class="b" id="stest">🔊 清掃員の声</button><button class="b" id="stestg">🔊 ゲストの声</button></div>
+    <div class="note">声が機械っぽいときは、ほかの声を選んでみてください。iPhoneは「設定 → アクセシビリティ → 読み上げコンテンツ → 声 → 英語」で高音質の声（例：Ava（プレミアム））を入れると、ここで選べるようになります。</div>
+  </div>
+  <div class="set"><h3>記録</h3>
+    <div class="note" style="margin-top:0">「できた」の記録は、この端末のこのブラウザにだけ残ります。</div>
+    <div class="btns"><button class="b" id="sreset" style="color:var(--ng)">記録をリセット</button></div>
+  </div>`;
+  const g=id=>document.getElementById(id);
+  g("sin").onchange=e=>{S.inT=e.target.value;save();};
+  g("sout").onchange=e=>{S.outT=e.target.value;save();};
+  g("sfl").onchange=e=>{S.floor=e.target.value;save();};
+  g("sslow").onclick=e=>{S.slow=!S.slow;save();e.target.classList.toggle("on",S.slow);};
+  g("sshow").onclick=e=>{S.showEn=!S.showEn;save();e.target.classList.toggle("on",S.showEn);};
+  g("stest").onclick=()=>speak("Hello, I'm the cleaning staff.",false);
+  g("stestg").onclick=()=>speak("Hi! Can I check in now?",true);
+  g("svoice").onchange=e=>{S.voice=e.target.value;save();};
+  g("sreset").onclick=()=>{
+    const dl=document.getElementById("dlg"),di=document.getElementById("dlgin");
+    di.innerHTML=`<div style="font-weight:700">記録をリセットしますか？</div><div class="note">「できた」の印がすべて消えます。設定はそのまま残ります。</div><div class="btns"><button class="b" id="rno" style="flex:1">やめる</button><button class="b" id="ryes" style="flex:1;background:var(--ng);border-color:var(--ng);color:#fff">リセット</button></div>`;
+    dl.classList.add("on");
+    g("rno").onclick=()=>dl.classList.remove("on");
+    g("ryes").onclick=()=>{S.done={};S.dlg={};save();dl.classList.remove("on");updTotal();toast("記録をリセットしました");};
+  };
+}
+
+render();
+
+/* Claudeの公開ページ上では、聞き取り・読み上げをClaude側の機能で補う */
+(async()=>{
+  try{
+    if(window.claude&&window.claude.use){
+      const [d,t]=await Promise.all([window.claude.use("dictation"),window.claude.use("tts")]);
+      if(d)dict=d; if(t)ctts=t;
+      if(view==="set")renderSet();
+    }
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
