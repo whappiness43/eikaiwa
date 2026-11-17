@@ -261,7 +261,7 @@ const KEY="seisou-eikaiwa-v1";
 let S={done:{},dlg:{},inT:"3",outT:"11",floor:"3",slow:false,showEn:false,voice:"auto"};
 try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s)S=Object.assign(S,s);}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
-function fill(t){return t.replace(/\{in\}/g,S.inT).replace(/\{out\}/g,S.outT).replace(/\{floor\}/g,S.floor);}
+function fill(t){return String(t||"").replace(/\{in\}|\{チェックイン\}/g,S.inT).replace(/\{out\}|\{チェックアウト\}/g,S.outT).replace(/\{floor\}|\{階\}/g,S.floor);}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 /* ===== 読み上げ ===== */
@@ -462,7 +462,7 @@ function wireMic(btn,res,en,onGood,onReveal,echo){
 }
 
 /* 会話 */
-function dlgLines(sc){return D.find(d=>d[0]===sc)[1].map(x=>{if(Array.isArray(x))return{g:x[0]==="g",en:x[1],ja:x[2]};const p=PH[x];return{g:p.g,en:fill(p.en),ja:fill(p.ja),id:x};});}
+function dlgLines(sc){return D.find(d=>d[0]===sc)[1].filter(x=>Array.isArray(x)||PH[x]).map(x=>{if(Array.isArray(x))return{g:x[0]==="g",en:x[1],ja:x[2]};const p=PH[x];return{g:p.g,en:fill(p.en),ja:fill(p.ja),id:x};});}
 function renderDlgList(){
   main.innerHTML=`<div class="set" style="margin-top:12px"><h3>🎲 1問1答（ランダム）</h3>
     <div class="note" style="margin-top:0">ゲストに何を言われるかわからない状態で、清掃員のセリフを返す練習です。</div>
@@ -579,6 +579,7 @@ function renderSet(){
     <div class="env">🔊 読み上げ：<b>${(window.speechSynthesis||ctts)?"使えます":"使えません"}</b></div>
     <div class="env">🎤 聞き取り：<b>${mm==="none"?"使えません（自分で判定する形になります）":"使えます"}</b></div>
     <div class="row"><span>お手本の声</span><select id="svoice" style="max-width:60%">${voiceOptions()}</select></div>
+    <div class="env">📚 フレーズ：<b>${esc(phraseSrc.kind)}（${phraseSrc.count}個${phraseSrc.at?"・"+esc(phraseSrc.at.replace("T"," ").slice(0,16)):""}）</b></div>
     <div class="btns"><button class="b" id="stest">🔊 清掃員の声</button><button class="b" id="stestg">🔊 ゲストの声</button></div>
     <div class="note">声が機械っぽいときは、ほかの声を選んでみてください。iPhoneは「設定 → アクセシビリティ → 読み上げコンテンツ → 声 → 英語」で高音質の声（例：Ava（プレミアム））を入れると、ここで選べるようになります。</div>
   </div>
@@ -604,7 +605,38 @@ function renderSet(){
   };
 }
 
+/* ===== 最新のフレーズを読み込む（ガイドアプリの「英会話フレーズ」シート → 英会話フレーズAPI） ===== */
+// 読めないときは、このページの中の控え（上の P・PAIR）で動く
+const PHRASE_API="https://script.google.com/macros/s/AKfycbwi8ZlpDlvxplPucxrB6tPUMM4SmOisenQACpAVqrWNKnGh6j_yzDuKLCO7_pO5aOJw/exec";
+const PKEY="seisou-eikaiwa-phrases";
+let phraseSrc={kind:"控え",count:P.length,at:""};
+function applyPhrases(list,at,kind){
+  if(!Array.isArray(list)||list.length<5)return false;
+  const ok=list.every(r=>Array.isArray(r)&&r.length>=5&&+r[0]>0&&+r[1]>=1&&+r[1]<=10&&r[3]&&r[4]);
+  if(!ok)return false;
+  P.length=0;Object.keys(PH).forEach(k=>delete PH[k]);Object.keys(PAIR).forEach(k=>delete PAIR[k]);
+  list.slice().sort((a,b)=>a[1]-b[1]||a[0]-b[0]).forEach(r=>{
+    const row=[+r[0],+r[1],r[2]?1:0,String(r[3]),String(r[4])];P.push(row);
+    PH[row[0]]={id:row[0],sc:row[1],g:!!row[2],ja:row[3],en:row[4]};
+    if(!row[2]&&(r[5]==="前"||r[5]==="後")&&r[6])PAIR[row[0]]=[r[5],String(r[6]),String(r[7]||"")];
+  });
+  phraseSrc={kind,count:P.length,at:at||""};
+  return true;
+}
+(function(){try{const c=JSON.parse(localStorage.getItem(PKEY)||"null");if(c&&applyPhrases(c.phrases,c.at,"前回読み込んだもの"));}catch(e){}})();
 render();
+(async()=>{
+  if(!/^https:\/\//.test(PHRASE_API))return;
+  try{
+    const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),10000);
+    const r=await fetch(PHRASE_API,{signal:ctl.signal});clearTimeout(t);
+    const j=await r.json();
+    if(j&&j.ok&&applyPhrases(j.phrases,j.at,"最新")){
+      try{localStorage.setItem(PKEY,JSON.stringify({at:j.at,phrases:j.phrases}));}catch(e){}
+      const sh=document.getElementById("sheet");if(!sh||!sh.classList.contains("on")){if(view==="phr")renderPhr();else if(view==="set")renderSet();updTotal();}
+    }
+  }catch(e){}
+})();
 
 /* Claudeの公開ページ上では、聞き取り・読み上げをClaude側の機能で補う */
 (async()=>{
